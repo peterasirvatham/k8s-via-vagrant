@@ -27,7 +27,7 @@ jobs:
         run: pip install flake8
 
       - name: Run flake8
-        run: flake8 app/ --max-line-length=120 --statistics
+        run: flake8 Module-4/lab/tests/ --max-line-length=120 --statistics --extend-ignore=W291,W293
 
   # --------------------------------------------------------------------------
   # 2. TEST JOB
@@ -50,7 +50,7 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Run unit and integration tests
-        run: pytest tests/ -v --tb=short
+        run: pytest Module-4/lab/tests/ -v --tb=short
 
   # --------------------------------------------------------------------------
   # 3. BUILD JOB

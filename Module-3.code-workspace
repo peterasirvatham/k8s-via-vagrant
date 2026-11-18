@@ -1,0 +1,20 @@
+{
+	"folders": [
+		{
+			"path": "../../repo/AIOPS-COURSE-1/Module-3"
+		},
+		{
+			"path": "../../repo/vagrant-ansible-terrafom-docker"
+		},
+		{
+			"path": "../../repo/AIOPS-COURSE-1/Module-1"
+		},
+		{
+			"path": "."
+		},
+		{
+			"path": "../../repo/AIOPS-COURSE-1/Module-2"
+		}
+	],
+	"settings": {}
+}

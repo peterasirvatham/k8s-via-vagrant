@@ -1,0 +1,20 @@
+{
+	"folders": [
+		{
+			"path": "../../dockerwork"
+		},
+		{
+			"path": "."
+		},
+		{
+			"path": "../kubernetes-ingress"
+		},
+		{
+			"path": "../../repo/vagrant-ansible-terrafom-docker"
+		},
+		{
+			"path": "../../../docker-space"
+		}
+	],
+	"settings": {}
+}

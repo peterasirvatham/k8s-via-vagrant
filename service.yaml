@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-backend-service
+  namespace: default
+  labels:
+    app: my-app
+spec:
+  type: ClusterIP
+  selector:
+    app: my-web-app
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80          # The port exposed by this service inside the cluster
+      targetPort: 8080  # The actual port the container in your Pod is listening on

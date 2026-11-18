@@ -1,0 +1,70 @@
+# ==============================================================================
+# AIOps Assistant Deployment (Module 4)
+# ==============================================================================
+# NOTE FOR STUDENTS:
+# 1. IMAGE ORIGIN:
+#    The image `module2-assistant:latest` was built in Module 2 (Module-2/lab/Dockerfile).
+#    - If running locally on Vagrant/Kind/Minikube: use `imagePullPolicy: IfNotPresent`
+#      so Kubernetes uses your locally built/imported Module 2 image.
+#    - If using Docker Hub / CI/CD (Module 4 Lesson 01): replace with your Docker Hub image:
+#      e.g., `your_dockerhub_username/aiops-assistant:latest` (or let the CI/CD pipeline set it).
+#
+# 2. NETWORKING & SERVICES:
+#    - Pods expose Streamlit on containerPort 8501.
+#    - To access these pods, apply the companion Service: `assistant-service.yaml` (NodePort 30501).
+#    - To route via domain name (http://aiops.local), apply: `assistant-ingress.yaml`.
+#
+# 3. AUTOSCALING (HPA):
+#    - The `resources.requests.cpu: 250m` below is REQUIRED for HPA (`assistant-hpa.yaml`).
+#      Without CPU requests, HPA cannot calculate percentage utilization and will fail.
+# ==============================================================================
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aiops-assistant-deployment
+  labels:
+    app: aiops-assistant
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: aiops-assistant
+  template:
+    metadata:
+      labels:
+        app: aiops-assistant
+    spec:
+      containers:
+      - name: assistant
+        # Image built in Module 2 (or pushed to Docker Hub via Module 4 CI/CD)
+        image: module2-assistant:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8501
+
+        # Health checks (Lesson 03): Streamlit provides /_stcore/health endpoint
+        livenessProbe:
+          httpGet:
+            path: /_stcore/health
+            port: 8501
+          initialDelaySeconds: 30    # Gives model download & startup time to complete
+          periodSeconds: 10
+          failureThreshold: 3
+
+        readinessProbe:
+          httpGet:
+            path: /_stcore/health
+            port: 8501
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          failureThreshold: 3
+
+        # Resource bounds (Lesson 03 & 04): Required by HPA for CPU-based scaling
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"

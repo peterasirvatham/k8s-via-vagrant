@@ -1,277 +1,112 @@
-# k8s-via-vagrant
+# Module 4 Lab Guide — Production Ops (CI/CD, Probes & Autoscaling)
 
-### 🌐 Network Diagram for Kubernetes Cluster
+This directory contains the hands-on Kubernetes manifests, automated test suites, and CI/CD workflow for **Module 4**.
 
-### 📊 Complete Network Architecture
+---
 
-<pre>
+## Directory Structure
 
-+---------------------------------------------------------------------------------+
-|                        YOUR LAPTOP / HOST MACHINE                               |
-|                                                                                 |
-|                              +------------+                                     |
-|                              |  Internet  |                                     |
-|                              +------|-----+                                     |
-|                                     |                                           |
-|    +--------------------------------|----------------------------------------+  |
-|    |                           VIRTUALBOX                                    |  |
-|    |                                                                         |  |
-|    |   +------------------------------------------------------------------+  |  |
-|    |   |                  NAT NETWORK (10.0.2.0/24)                       |  |  |
-|    |   |               (Internet Access for all VMs)                      |  |  |
-|    |   +---------|----------------------|----------------------|----------+  |  |
-|    |             |                      |                      |             |  |
-|    |         10.0.2.15              10.0.2.15              10.0.2.15         |  |
-|    |           (eth0)                 (eth0)                 (eth0)          |  |
-|    |             |                      |                      |             |  |
-|    |   +---------|---------+  +---------|----------+  +--------|----------+  |  |
-|    |   |       MASTER      |  |       WORKER1      |  |       WORKER2     |  |  |
-|    |   |  192.168.56.24    |  |   192.168.56.25    |  |   192.168.56.26   |  |  |
-|    |   |     (5GB RAM)     |  |     (3GB RAM)      |  |     (3GB RAM)     |  |  |
-|    |   |      2 CPUs       |  |       2 CPUs       |  |       2 CPUs      |  |  |
-|    |   |                   |  |                    |  |                   |  |  |
-|    |   | +---------------+ |  | +----------------+ |  | +---------------+ |  |  |
-|    |   | | Control Plane | |  | |    Workloads   | |  | |   Workloads   | |  |  |
-|    |   | | • API Server  | |  | |                | |  | |               | |  |  |
-|    |   | | • Scheduler   | |  | |  +-----------+ | |  | | +-----------+ | |  |  |
-|    |   | | • Controller  | |  | |  | nginx-pod | | |  | | | test-pod  | | |  |  |
-|    |   | | • etcd        | |  | |  | 10.244.1.x| | |  | | |10.244.2.x | | |  |  |
-|    |   | +---------------+ |  | |  +-----------+ | |  | | +-----------+ | |  |  |
-|    |   |                   |  | +----------------+ |  | +---------------+ |  |  |
-|    |   | +---------------+ |  |                    |  |                   |  |  |
-|    |   | | System Pods   | |  | +----------------+ |  | +---------------+ |  |  |
-|    |   | | • CoreDNS x2  | |  | | • kubelet      | |  | | • kubelet     | |  |  |
-|    |   | | • kube-proxy  | |  | | • kube-proxy   | |  | | • kube-proxy  | |  |  |
-|    |   | | • flannel     | |  | | • flannel      | |  | | • flannel     | |  |  |
-|    |   | +---------------+ |  | +----------------+ |  | +---------------+ |  |  |
-|    |   |                   |  |                    |  |                   |  |  |
-|    |   |  flannel.1        |  |  flannel.1         |  |  flannel.1        |  |  |
-|    |   |  (VXLAN iface)    |  |  (VXLAN iface)     |  |  (VXLAN iface)    |  |  |
-|    |   +---------|----------+  +---------|----------+  +---------|--------+  |  |
-|    |             |                       |                       |           |  |
-|    |   +---------|=======================|=======================|---------+ |  |
-|    |   |         |    FLANNEL VXLAN OVERLAY (10.244.0.0/16)      |         | |  |
-|    |   |         |         (Pod-to-Pod Communication)            |         | |  |
-|    |   |  +------|-------+   +-------|-------+   +-------|-----+ |         | |  |
-|    |   |  | 10.244.0.0/24|   |10.244.1.0/24  |   |10.244.2.0/24| |         | |  |
-|    |   |  |    Master    |   |   Worker1     |   |   Worker2   | |         | |  |
-|    |   |  +--------------+   +---------------+   +-------------+ |         | |  |
-|    |   +----------------------------------------------------------+------+ | |  |
-|    |             |                       |                       |           |  |
-|    |         (eth1)                   (eth1)                  (eth1)         |  |
-|    |   +---------|=======================|=======================|---------+ |  |
-|    |   |              HOST-ONLY NETWORK (192.168.56.0/24)                  | |  |
-|    |   |                  (Node-to-Node Communication)                     | |  |
-|    |   |              Flannel uses this for VXLAN tunneling                | |  |
-|    |   +-------------------------------------------------------------------+ |  |
-|    +-------------------------------------------------------------------------+  |
-+----------------------------------------------------------------------------------+
-</pre>
+```text
+Module-4/lab/
+├── .github/
+│   └── workflows/
+│       └── ci.yml                     # GitHub Actions CI/CD pipeline (lint → test → build → deploy)
+├── k8s/
+│   ├── assistant-deployment.yaml      # Deployment with liveness/readiness probes & CPU requests
+│   ├── assistant-service.yaml         # NodePort Service exposing port 8501 on port 30501
+│   ├── assistant-ingress.yaml         # Ingress routing http://aiops.local to the Service
+│   └── assistant-hpa.yaml             # Horizontal Pod Autoscaler (scales 2 -> 5 replicas at 70% CPU)
+├── tests/                             # Test suite executed by CI/CD before any deployment
+│   ├── test_api_endpoint.py           # Verifies Streamlit /_stcore/health endpoint
+│   ├── test_chunking.py               # Verifies RAG document chunking
+│   ├── test_db_query.py               # Verifies ChromaDB vector storage & similarity search
+│   ├── test_embeddings.py             # Verifies embedding vector dimensions (384-dim)
+│   └── test_golden_dataset.py         # Golden dataset ML regression test (accuracy >= 80%)
+└── README.md                          # This lab execution guide
+```
 
-### 🔍 Detailed Node View with Interfaces
+---
 
-<pre>
+## Frequently Asked Questions (FAQ)
 
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                          NODE IPs (Layer 2)                                 │
-├─────────────────────────────────────────────────────────────────────────────┤
-│  MASTER:   192.168.56.24                                                    │
-│  WORKER1:  192.168.56.25                                                    │
-│  WORKER2:  192.168.56.26                                                    │
-└─────────────────────────────────────────────────────────────────────────────┘
+### 1. Where did `image: module2-assistant:latest` come from? Did we build this in Module 2?
+**Yes.** In **Module 2 Lesson 04** (`Module-2/lab/Dockerfile`), you packaged the Streamlit RAG assistant into a Docker image.
+* **If testing on local nodes (Vagrant / Minikube):** The image was built as `module2-assistant:latest` (or imported into containerd with `sudo ctr -n k8s.io images import /vagrant/image.tar`). `imagePullPolicy: IfNotPresent` ensures Kubernetes uses this local image without attempting to pull from Docker Hub.
+* **If deploying via CI/CD (Module 4):** The GitHub Actions pipeline in `.github/workflows/ci.yml` builds and pushes the image to Docker Hub, then automatically updates the deployment image tag using `kubectl set image`.
 
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                     POD NETWORK CIDRs (Layer 3 - Flannel)                   │
-├─────────────────────────────────────────────────────────────────────────────┤
-│  MASTER  Pod CIDR:   10.244.0.0/24  (pods get 10.244.0.x)                   │
-│  WORKER1 Pod CIDR:   10.244.1.0/24  (pods get 10.244.1.x)                   │
-│  WORKER2 Pod CIDR:   10.244.2.0/24  (pods get 10.244.2.x)                   │
-└─────────────────────────────────────────────────────────────────────────────┘
+---
 
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                         SERVICE NETWORK                                     │
-├─────────────────────────────────────────────────────────────────────────────┤
-│  Cluster IP Range:  10.96.0.0/12 (default)                                  │
-│  Kubernetes API:    10.96.0.1                                               │
-│  CoreDNS:           10.96.0.10                                              │
-└─────────────────────────────────────────────────────────────────────────────┘
+### 2. Why do we need `assistant-service.yaml` and where is it?
+A Kubernetes `Deployment` only manages the Pod lifecycle. **Pods have ephemeral IP addresses** that change whenever a pod restarts or scales.
+* **The Service (`assistant-service.yaml`)** provides a stable internal IP (`aiops-assistant-service:8501`) and exposes **NodePort `30501`**.
+* **Why NodePort 30501 matters:** In Lesson 04, the synthetic load generator (`hey`) sends traffic directly to `http://<worker-ip>:30501/` to drive CPU up and trigger autoscaling. Without this Service, the load tester cannot reach the pods.
 
-</pre>
+---
 
-### 🌐 Pod Network (Calico Overlay)
+### 3. Do we need Ingress (`assistant-ingress.yaml`)?
+* **For basic access & load testing:** No, the NodePort service (`http://<node-ip>:30501`) is sufficient.
+* **For production-like domain routing:** Yes! Ingress (`assistant-ingress.yaml`) routes domain names (e.g., `http://aiops.local`) to `aiops-assistant-service:8501` via the NGINX Ingress Controller configured in Module 3. Both options are provided in `k8s/` so you can use either method.
 
-<pre>
+---
 
-┌──────────────────────────────────────────────────────────────────────────────┐
-│                           POD-TO-POD TRAFFIC FLOW                            │
-└──────────────────────────────────────────────────────────────────────────────┘
+### 4. How does GitHub Actions reach our local Vagrant VMs? Do we need a self-hosted runner?
+**Yes!** By default, GitHub Actions runners (`ubuntu-latest`) execute in GitHub's cloud and **cannot reach private local IP addresses** like `192.168.56.24:6443` on your laptop.
 
-  WORKER1 (192.168.56.25)                    WORKER2 (192.168.56.26)
-  ┌─────────────────────┐                    ┌─────────────────────┐
-  │     nginx-pod       │                    │      test-pod       │
-  │    10.244.1.5       │                    │     10.244.2.8      │
-  └─────────┬───────────┘                    └──────────▲──────────┘
-            │                                           │
-            │ ① Pod sends packet to 10.244.2.8         │ ⑤ Packet delivered
-            ▼                                           │    to test-pod
-  ┌─────────────────────┐                    ┌──────────┴──────────┐
-  │   flannel.1 (VXLAN) │                    │   flannel.1 (VXLAN) │
-  │   Encapsulates in   │                    │   Decapsulates      │
-  │   VXLAN header      │                    │   VXLAN packet      │
-  └─────────┬───────────┘                    └──────────▲──────────┘
-            │                                           │
-            │ ② VXLAN packet sent                      │ ④ VXLAN packet
-            │    via eth1                              │    received
-            ▼                                           │
-  ┌─────────────────────┐                    ┌──────────┴──────────┐
-  │   eth1              │                    │   eth1              │
-  │   192.168.56.25     │────────────────────│   192.168.56.26     │
-  └─────────────────────┘   ③ Host-Only      └─────────────────────┘
-                              Network
-                           192.168.56.0/24
+To bridge this securely without opening public firewall ports, we run a **GitHub Actions Self-Hosted Runner** directly on the **`master` VM** (or via a containerized runner):
+1. The runner connects outward to GitHub via HTTPS and listens for jobs.
+2. In `.github/workflows/ci.yml`, the `deploy` job sets `runs-on: [self-hosted, k8s]`.
+3. When triggered, the runner executes `kubectl set image` locally inside the VM with native cluster access!
 
-</pre>
+See [Lesson 01 Step 3](../01-cicd-pipeline.md) or run `./setup-runner.sh` inside the `master` VM to configure it in minutes.
 
+---
 
-### 📊 Network Summary Table
+## Quick Start — Applying the Lab Manifests
 
-| Network | CIDR | Purpose | Used By |
-| :--- | :--- | :--- | :--- |
-| **NAT** | `10.0.2.0/24` | Internet access | All VMs (`eth0`) |
-| **Host-Only** | `192.168.56.0/24` | Node communication | All VMs (`eth1`) |
-| **Pod Network** | `172.16.0.0/16` | Pod-to-Pod communication | All Pods |
-| **Service Network** | `10.96.0.0/12` | Kubernetes Services | ClusterIP services |
+### Step 1: Apply the Deployment, Service, and Ingress
+On your Kubernetes control plane node (or via configured `kubectl`):
 
-### 🔗 IP Address Allocation
+```bash
+# 1. Deploy the assistant with health probes & CPU requests
+kubectl apply -f k8s/assistant-deployment.yaml
 
-<pre>
+# 2. Expose the assistant via NodePort 30501
+kubectl apply -f k8s/assistant-service.yaml
 
-+-----------------------------------------------------------------+
-|                         IP ADDRESS MAP                          |
-|                                                                 |
-| NODE IPs (192.168.56.0/24):                                     |
-| |-- 192.168.56.24  ----------> Master                           |
-| |-- 192.168.56.25  ----------> Worker1                          |
-| `-- 192.168.56.26  ----------> Worker2                          |
-|                                                                 |
-| POD CIDRs (172.16.0.0/16):                                      |
-| |-- 172.16.0.0/24  ----------> Pods on Master                   |
-| |-- 172.16.1.0/24  ----------> Pods on Worker1                  |
-| `-- 172.16.2.0/24  ----------> Pods on Worker2                  |
-|                                                                 |
-| SERVICE CIDR (10.96.0.0/12):                                    |
-| |-- 10.96.0.1      ----------> kubernetes (API Server)          |
-| `-- 10.96.0.10     ----------> kube-dns (CoreDNS)               |
-|                                                                 |
-| NAT IPs (10.0.2.0/24):                                          |
-| `-- 10.0.2.15      ----------> All VMs (shared for internet)    |
-|                                                                 |
-+-----------------------------------------------------------------+
+# 3. (Optional) Enable host-based routing (http://aiops.local)
+kubectl apply -f k8s/assistant-ingress.yaml
+```
 
-</pre>
+### Step 2: Verify Deployment and Health Probes
+```bash
+# Verify pods are Running and passing readiness probes (1/1)
+kubectl get pods -l app=aiops-assistant
 
-### 🔄 Traffic Flow Examples
+# Verify the Service is listening on NodePort 30501
+kubectl get svc aiops-assistant-service
+```
 
-**1. Pod-to-Pod (Same Node)**
+### Step 3: Configure and Apply HPA (Autoscaler)
+```bash
+# Apply the declarative HPA manifest
+kubectl apply -f k8s/assistant-hpa.yaml
 
-<pre>
-+-------------------------------------------------+
-|                    WORKER1                      |
-|                                                 |
-|  +----------+          +----------+             |
-|  |  Pod A   | -------> |  Pod B   |             |
-|  |172.16.1.5|  Direct  |172.16.1.6|             |
-|  +----------+  (veth)  +----------+             |
-|                                                 |
-|  Traffic stays on same node (Fast!)             |
-+-------------------------------------------------+
-</pre>
+# Verify HPA is monitoring CPU
+kubectl get hpa aiops-assistant-hpa
+```
+*Expected output:*
+```text
+NAME                  REFERENCE                               TARGETS   MINPODS   MAXPODS   REPLICAS   AGE
+aiops-assistant-hpa   Deployment/aiops-assistant-deployment   15%/70%   2         5         2          30s
+```
 
-**2. Pod-to-Pod (Different Nodes)**
+### Step 4: Run the HPA Load Test
+From your host machine, generate traffic to NodePort `30501`:
+```bash
+hey -n 2000 -c 50 http://<WORKER_NODE_IP>:30501/
+```
 
-<pre>
-
-+------------------+                    +------------------+
-|     WORKER1      |                    |     WORKER2      |
-|                  |                    |                  |
-|  +----------+    |                    |    +----------+  |
-|  |  Pod A   |    |                    |    |  Pod B   |  |
-|  |172.16.1.5|    |                    |    |172.16.2.3|  |
-|  +----|-----+    |                    |    +----^-----+  |
-|       |          |                    |         |        |
-|       v          |                    |         |        |
-|  +----------+    |                    |    +----|-----+  |
-|  |  Calico  |    |    VXLAN Tunnel    |    |  Calico  |  |
-|  |  vxlan   |----+--------------------+--->|  vxlan   |  |
-|  +----------+    |                    |    +----------+  |
-|       |          |                    |                  |
-|  192.168.56.25   |                    |   192.168.56.26  |
-+------------------+                    +------------------+
-
-</pre>
-
-**3. Pod-to-Internet**
-
-<pre>
-+--------------------------------------------------------------+
-|                                                              |
-|  +----------+     +----------+     +----------+     +-----+  |
-|  |  Pod A   |---->|  Node    |---->|   NAT    |---->| WWW |  |
-|  |172.16.1.5|     |  eth0    |     | 10.0.2.x |     |     |  |
-|  +----------+     |10.0.2.15 |     +----------+     +-----+  |
-|                   +----------+                               |
-|                                                              |
-|  Calico NAT Outgoing: Pod IP ---> Node IP ---> Internet      |
-|                                                              |
-+--------------------------------------------------------------+
-</pre>
-
-**4. External-to-Service (NodePort)**
-
-<pre>
-+--------------------------------------------------------------+
-|                                                              |
-|   External      NodePort        Service         Pod          |
-|   Request       (30080)        ClusterIP                     |
-|                                                              |
-|  +------+     +----------+     +----------+     +----------+ |
-|  |Client|---->|Worker1   |---->|10.96.x.x |---->|172.16.1.5| |
-|  |      |     |:30080    |     |:80       |     |:8080     | |
-|  +------+     |192.168.  |     +----------+     +----------+ |
-|               |56.25     |                                   |
-|               +----------+                                   |
-|                                                              |
-+--------------------------------------------------------------+
-</pre>
-
-
-### ✅ Network Summary
-
-### 🌐 Layered Network Architecture
-
-| Layer | Network | Range | Notes |
-| :--- | :--- | :--- | :--- |
-| **Physical** | Host-Only | `192.168.56.0/24` | Node-to-node communication |
-| **Physical** | NAT | `10.0.2.0/24` | Internet access (Outbound) |
-| **Overlay** | Pod Network | `172.16.0.0/16` | Calico VXLAN encapsulation |
-| **Virtual** | Service | `10.96.0.0/12` | Kubernetes ClusterIP range |
-
-
-### 📊 Comparison Table
-
-| Issue | Original (❌) | Fixed (✅) |
-| :--- | :--- | :--- |
-| **Containerd Version** | `2.0.0` (unstable) | `1.7.24` (stable) |
-| **Pod CIDR** | `192.168.0.0/16` (overlaps nodes) | `172.16.0.0/16` (no conflict) |
-| **Node IP Config** | Not set (wrong NIC binding) | Explicitly set via `KUBELET_EXTRA_ARGS` |
-| **API Server Address** | Not set (may bind to NAT) | Set to `--apiserver-advertise-address` |
-| **Master Memory** | `2458 MB` (too low) | `5120 MB` (5GB) |
-| **Worker Memory** | `1500 MB` (borderline) | `3072 MB` (3GB) |
-| **Sandbox Image** | Not configured | Set to `pause:3.9` |
-| **Package Hold** | No | **Yes** (`apt-mark hold`) |
-| **Vagrant User Kubeconfig** | No | **Yes** |
-| **Worker Wait Loop** | No (may fail) | **Yes** (waits up to 5 min) |
-| **Calico Install** | Simple manifest | **Tigera Operator** (production) |
-| **Missing Package** | No `socat` | Includes `socat` |
-| **Pre-pull Images** | No | **Yes** (`kubeadm config images pull`) |
-| **Primary Node Flag** | No | **Yes** (master is primary) |
+In a separate terminal, watch the pods scale automatically from 2 to 5:
+```bash
+kubectl get hpa aiops-assistant-hpa --watch
+```

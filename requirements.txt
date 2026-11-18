@@ -1,0 +1,5 @@
+chromadb
+numpy
+pytest
+requests
+streamlit

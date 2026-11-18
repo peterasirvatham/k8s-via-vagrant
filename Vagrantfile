@@ -1,6 +1,8 @@
 VAGRANTFILE_API_VERSION = "2"
 
-BOX_NAME = "generic/ubuntu2204"
+# Apple Silicon hosts cannot boot x86 VM images in VirtualBox.
+# Use an ARM64 Ubuntu box and matching binaries for the guest OS.
+BOX_NAME = "bento/ubuntu-22.04"
 
 # Network layout
 NETWORK_BASE = '192.168.56'
@@ -41,22 +43,22 @@ apt-get install -y apt-transport-https ca-certificates curl wget gnupg lsb-relea
 
 # Containerd
 VERSION="1.7.24"
-wget -q https://github.com/containerd/containerd/releases/download/v${VERSION}/containerd-${VERSION}-linux-amd64.tar.gz
-tar Cxzvf /usr/local containerd-${VERSION}-linux-amd64.tar.gz
+wget -q https://github.com/containerd/containerd/releases/download/v${VERSION}/containerd-${VERSION}-linux-arm64.tar.gz
+tar Cxzvf /usr/local containerd-${VERSION}-linux-arm64.tar.gz
 mkdir -p /usr/local/lib/systemd/system
 wget -q -P /usr/local/lib/systemd/system https://raw.githubusercontent.com/containerd/containerd/main/containerd.service
 systemctl daemon-reload && systemctl enable --now containerd
 
 # Runc
 RUNC="v1.2.2"
-wget -q https://github.com/opencontainers/runc/releases/download/${RUNC}/runc.amd64
-install -m 755 runc.amd64 /usr/local/sbin/runc
+wget -q https://github.com/opencontainers/runc/releases/download/${RUNC}/runc.arm64
+install -m 755 runc.arm64 /usr/local/sbin/runc
 
 # CNI plugins
 CNI="v1.6.0"
 mkdir -p /opt/cni/bin
-wget -q https://github.com/containernetworking/plugins/releases/download/${CNI}/cni-plugins-linux-amd64-${CNI}.tgz
-tar Cxzvf /opt/cni/bin cni-plugins-linux-amd64-${CNI}.tgz
+wget -q https://github.com/containernetworking/plugins/releases/download/${CNI}/cni-plugins-linux-arm64-${CNI}.tgz
+tar Cxzvf /opt/cni/bin cni-plugins-linux-arm64-${CNI}.tgz
 
 # Containerd config with SystemdCgroup and correct sandbox image
 mkdir -p /etc/containerd

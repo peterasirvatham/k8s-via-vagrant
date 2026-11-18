@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: frontend-replicaset
+  labels:
+    app: guestbook
+    tier: frontend
+spec:
+  # The number of pod replicas you want running
+  replicas: 3
+  # Tells the ReplicaSet which pods it is responsible for managing
+  selector:
+    matchLabels:
+      tier: frontend
+  # Template used to create new pods if needed
+  template:
+    metadata:
+      labels:
+        tier: frontend
+    spec:
+      containers:
+      - name: nginx-php
+        image: nginx:1.25
+        ports:
+        - containerPort: 80
